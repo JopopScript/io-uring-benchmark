@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: io-uring-benchmark-server
+  namespace: io-uring-benchmark
+  labels:
+    app: io_uring_benchmark_server
+    app.kubernetes.io/name: io_uring_benchmark
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: io_uring_benchmark_server
+  template:
+    metadata:
+      labels:
+        app: io_uring_benchmark_server
+        app.kubernetes.io/name: io_uring_benchmark
+        app.kubernetes.io/component: server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: master0
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        seccompProfile:
+          type: Unconfined
+      containers:
+        - name: server
+          image: io_uring_benchmark-server:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BIND_ADDRESS
+              value: 0.0.0.0:8080
+            - name: TRANSPORT
+              value: io_uring
+            - name: SYNC_WRITES
+              value: "0"
+          volumeMounts:
+            - name: source-data
+              mountPath: /app/data
+            - name: output
+              mountPath: /app/data/output
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: source-data
+          hostPath:
+            path: /home/ubuntu/source-data
+            type: DirectoryOrCreate
+        - name: output
+          hostPath:
+            path: /home/ubuntu/output
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: io-uring-benchmark-server
+  namespace: io-uring-benchmark
+  labels:
+    app: io_uring_benchmark_server
+    app.kubernetes.io/name: io_uring_benchmark
+    app.kubernetes.io/component: server
+spec:
+  type: ClusterIP
+  selector:
+    app: io_uring_benchmark_server
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

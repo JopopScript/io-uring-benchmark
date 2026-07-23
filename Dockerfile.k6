@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1.7
+
+FROM grafana/k6:2.1.0
+
+USER root
+
+COPY scripts/load.js /scripts/load.js
+RUN mkdir -p /tmp/summary && chmod 0777 /tmp/summary
+
+ENV BASE_URL=http://io-uring-benchmark-server.io-uring-benchmark.svc.cluster.local:8080
+ENV SUMMARY_DIR=/tmp/summary
+
+EXPOSE 6565
+
+ENTRYPOINT ["k6"]
+CMD ["run", "--address", "0.0.0.0:6565", "--linger", "/scripts/load.js"]

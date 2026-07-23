@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: io-uring-benchmark-k6
+  namespace: io-uring-benchmark
+  labels:
+    app: io_uring_benchmark_k6
+    app.kubernetes.io/name: io_uring_benchmark
+    app.kubernetes.io/component: k6
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: io_uring_benchmark_k6
+  template:
+    metadata:
+      labels:
+        app: io_uring_benchmark_k6
+        app.kubernetes.io/name: io_uring_benchmark
+        app.kubernetes.io/component: k6
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: master0
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: k6
+          image: io_uring_benchmark-k6:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: api
+              containerPort: 6565
+          env:
+            - name: BASE_URL
+              value: http://io-uring-benchmark-server.io-uring-benchmark.svc.cluster.local:8080
+            - name: SUMMARY_DIR
+              value: /tmp/summary
+            - name: WARMUP_DURATION
+              value: 30s
+            - name: WARMUP_RPS
+              value: "10"
+            - name: STEADY_DURATION
+              value: 5m
+            - name: STEADY_RPS
+              value: "500"
+            - name: PRE_ALLOCATED_VUS
+              value: "100"
+            - name: MAX_VUS
+              value: "1000"
+          volumeMounts:
+            - name: summary
+              mountPath: /tmp/summary
+      volumes:
+        - name: summary
+          hostPath:
+            path: /home/ubuntu/summary
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: io-uring-benchmark-k6
+  namespace: io-uring-benchmark
+  labels:
+    app: io_uring_benchmark_k6
+    app.kubernetes.io/name: io_uring_benchmark
+    app.kubernetes.io/component: k6
+spec:
+  type: ClusterIP
+  selector:
+    app: io_uring_benchmark_k6
+  ports:
+    - name: api
+      port: 6565
+      targetPort: api

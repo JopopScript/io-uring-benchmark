@@ -1,0 +1,10 @@
+[package]
+name = "io_uring_benchmark"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = { version = "=0.4.45", default-features = false, features = ["clock"] }
+tokio = { version = "=1.53.1", features = ["fs", "io-util", "net", "rt-multi-thread"] }
+tokio-uring = "=0.5.0"
+uuid = { version = "=1.24.0", features = ["v4"] }
