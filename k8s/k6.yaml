@@ -1,5 +1,5 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: io-uring-benchmark-k6
   namespace: io-uring-benchmark
@@ -16,7 +16,6 @@ spec:
         app.kubernetes.io/name: io_uring_benchmark
         app.kubernetes.io/component: k6
     spec:
-      restartPolicy: Never
       nodeSelector:
         kubernetes.io/hostname: master0
       tolerations:
@@ -42,6 +41,10 @@ spec:
               value: 30s
             - name: WARMUP_RPS
               value: "10"
+            - name: STEADY_DURATION
+              value: 1s
+            - name: STEADY_RPS
+              value: "1"
             - name: PRE_ALLOCATED_VUS
               value: "100"
             - name: MAX_VUS
