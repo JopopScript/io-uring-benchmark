@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: io-uring-benchmark-k6
   namespace: io-uring-benchmark
@@ -16,6 +16,7 @@ spec:
         app.kubernetes.io/name: io_uring_benchmark
         app.kubernetes.io/component: k6
     spec:
+      restartPolicy: Never
       nodeSelector:
         kubernetes.io/hostname: master0
       tolerations:
