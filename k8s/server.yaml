@@ -35,6 +35,13 @@ spec:
         - name: server
           image: io_uring_benchmark-server:0.1.0
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
           ports:
             - name: http
               containerPort: 8080

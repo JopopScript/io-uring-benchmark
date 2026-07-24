@@ -88,7 +88,7 @@ docker push REGISTRY/io_uring_benchmark-k6:0.1.0
 
 ## Kubernetes
 
-서버와 k6 각각 Deployment + Service 매니페스트를 제공합니다.
+서버는 Deployment + Service, k6는 한 번 실행하고 종료되는 Job 매니페스트를 제공합니다.
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -115,24 +115,24 @@ kubectl set env -n io-uring-benchmark deployment/io-uring-benchmark-server TRANS
 kubectl set env -n io-uring-benchmark deployment/io-uring-benchmark-server TRANSPORT=io_uring
 ```
 
-k6 컨테이너는 테스트가 끝나도 Pod가 종료되지 않도록 `--linger`로 실행되며, `io-uring-benchmark-k6` Service는 k6 REST API 포트 `6565`를 가리킵니다.
+k6는 `Job`으로 실행됩니다. `k6 run /scripts/load.js`를 한 번 실행하고 테스트가 끝나면 종료되며, 종료 시 `handleSummary()`가 summary 파일을 생성합니다.
 
-k6 부하 패턴은 환경변수로 조절합니다. 기본값은 `30s` 동안 `10 RPS`로 워밍업한 뒤 `5m` 동안 `500 RPS`를 유지합니다.
+k6 부하 패턴은 환경변수로 조절합니다. 현재 기본값은 동작 확인용으로 `30s @ 10 RPS` 워밍업 뒤 `1s @ 1 RPS`만 실행합니다. 실제 부하는 `k8s/k6.yaml`의 env 값을 수정한 뒤 Job을 다시 생성해서 실행합니다.
 
 ```bash
-kubectl set env -n io-uring-benchmark deployment/io-uring-benchmark-k6 \
-  STEADY_DURATION=10m \
-  STEADY_RPS=1000 \
-  PRE_ALLOCATED_VUS=200 \
-  MAX_VUS=2000
+kubectl delete job -n io-uring-benchmark io-uring-benchmark-k6 --ignore-not-found
+
+# k8s/k6.yaml의 env 값을 수정한 뒤 다시 실행
+kubectl apply -f k8s/k6.yaml
 ```
 
 k6 결과 요약은 Pod 안의 `/tmp/summary/<timestamp>.html`, `/tmp/summary/<timestamp>.txt`에 저장됩니다. 이 경로는 `master0` node의 `/home/ubuntu/summary`에 `hostPath`로 마운트됩니다.
 
 ```bash
-kubectl exec -n io-uring-benchmark deploy/io-uring-benchmark-k6 -- ls -lh /tmp/summary
+kubectl logs -n io-uring-benchmark -f job/io-uring-benchmark-k6
+ls -lh /home/ubuntu/summary
 
-K6_POD=$(kubectl get pod -n io-uring-benchmark -l app=io_uring_benchmark_k6 -o jsonpath='{.items[0].metadata.name}')
+K6_POD=$(kubectl get pod -n io-uring-benchmark -l job-name=io-uring-benchmark-k6 -o jsonpath='{.items[0].metadata.name}')
 kubectl cp "io-uring-benchmark/${K6_POD}:/tmp/summary" ./summary
 ```
 
@@ -161,7 +161,7 @@ wc -c /home/ubuntu/source-data/source.txt
 k6 run -e BASE_URL=http://SERVER_IP:8080 scripts/load.js
 ```
 
-기본 시나리오는 `30s @ 10 RPS` → `5m @ 500 RPS`입니다. `PRE_ALLOCATED_VUS`와 `MAX_VUS`는 목표 RPS를 만들기 위해 k6가 사용할 수 있는 VU 풀 크기입니다.
+기본 시나리오는 동작 확인용 `30s @ 10 RPS` → `1s @ 1 RPS`입니다. 실제 테스트에서는 `STEADY_DURATION`, `STEADY_RPS`, `PRE_ALLOCATED_VUS`, `MAX_VUS`를 원하는 값으로 설정하세요.
 
 ## 주의
 

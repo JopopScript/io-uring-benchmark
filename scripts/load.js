@@ -5,8 +5,8 @@ import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporte
 
 const warmupDuration = __ENV.WARMUP_DURATION || "30s";
 const warmupRps = Number(__ENV.WARMUP_RPS || "10");
-const steadyDuration = __ENV.STEADY_DURATION || "5m";
-const steadyRps = Number(__ENV.STEADY_RPS || "500");
+const steadyDuration = __ENV.STEADY_DURATION || "1s";
+const steadyRps = Number(__ENV.STEADY_RPS || "1");
 const preAllocatedVus = Number(__ENV.PRE_ALLOCATED_VUS || "100");
 const maxVus = Number(__ENV.MAX_VUS || "1000");
 
